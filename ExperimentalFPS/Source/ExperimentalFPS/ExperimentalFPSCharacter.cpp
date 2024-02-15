@@ -11,6 +11,13 @@
 #include "InputActionValue.h"
 #include "Engine/LocalPlayer.h"
 
+// -------------- JR_FPS Modifications START -------------- //
+
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Custom/Components/EF_DashComponent.h"
+
+// -------------- JR_FPS Modifications END -------------- //
+
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 //////////////////////////////////////////////////////////////////////////
@@ -39,6 +46,12 @@ AExperimentalFPSCharacter::AExperimentalFPSCharacter()
 	//Mesh1P->SetRelativeRotation(FRotator(0.9f, -19.19f, 5.2f));
 	Mesh1P->SetRelativeLocation(FVector(-30.f, 0.f, -150.f));
 
+	
+// -------------- JR_FPS Modifications START -------------- //
+	
+	DashComponent = CreateDefaultSubobject<UEF_DashComponent>(TEXT("DashComponent"));
+
+// -------------- JR_FPS Modifications END -------------- //
 }
 
 void AExperimentalFPSCharacter::BeginPlay()
@@ -73,6 +86,15 @@ void AExperimentalFPSCharacter::SetupPlayerInputComponent(UInputComponent* Playe
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AExperimentalFPSCharacter::Look);
+
+// -------------- JR_FPS Modifications START -------------- //
+		
+		if (IsValid(DashComponent) && IsValid(DashComponent->DashAction))
+		{
+			EnhancedInputComponent->BindAction(DashComponent->DashAction, ETriggerEvent::Triggered, this, &AExperimentalFPSCharacter::Dash);
+		}
+		
+// -------------- JR_FPS Modifications END -------------- //
 	}
 	else
 	{
@@ -83,6 +105,8 @@ void AExperimentalFPSCharacter::SetupPlayerInputComponent(UInputComponent* Playe
 
 void AExperimentalFPSCharacter::Move(const FInputActionValue& Value)
 {
+	if (IsValid(DashComponent) && DashComponent->GetIsDashing()) return;
+
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
@@ -106,6 +130,22 @@ void AExperimentalFPSCharacter::Look(const FInputActionValue& Value)
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
 }
+
+// -------------- JR_FPS Modifications START -------------- //
+
+void AExperimentalFPSCharacter::Dash(const FInputActionValue& Value)
+{
+	if (IsValid(DashComponent) && IsValid(GetCharacterMovement()))
+	{
+		DashComponent->OnStartDash(GetCharacterMovement()->Velocity);
+		if (DashComponent->GetIsDashing())
+		{
+			//GetCharacterMovement()->SetJumpAllowed(false);
+		}
+	}
+}
+
+// -------------- JR_FPS Modifications END -------------- //
 
 void AExperimentalFPSCharacter::SetHasRifle(bool bNewHasRifle)
 {

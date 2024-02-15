@@ -14,6 +14,12 @@ class UInputAction;
 class UInputMappingContext;
 struct FInputActionValue;
 
+// -------------- JR_FPS Modifications START -------------- //
+
+class UEF_DashComponent;
+
+// -------------- JR_FPS Modifications END -------------- //
+
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 UCLASS(config=Game)
@@ -40,7 +46,14 @@ class AExperimentalFPSCharacter : public ACharacter
 	/** Move Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	UInputAction* MoveAction;
-	
+
+// -------------- JR_FPS Modifications START -------------- //
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UEF_DashComponent> DashComponent = nullptr;
+
+// -------------- JR_FPS Modifications END -------------- //
+
 public:
 	AExperimentalFPSCharacter();
 
@@ -71,6 +84,12 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
+
+// -------------- JR_FPS Modifications START -------------- //
+	
+	void Dash(const FInputActionValue& Value);
+
+// -------------- JR_FPS Modifications END -------------- //
 
 protected:
 	// APawn interface
