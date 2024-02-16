@@ -30,6 +30,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Gameplay)
 	FVector MuzzleOffset;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS/GravityGun", meta = (AllowPrivateAccess = "true"))
+	bool bIsGravityGun = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS/GravityGun", meta = (AllowPrivateAccess = "true", EditCondition = "bIsGravityGun", EditConditionHides))
+	float FiringForce = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS/GravityGun", meta = (AllowPrivateAccess = "true", EditCondition = "bIsGravityGun", EditConditionHides))
+	float PickUpRadius = 1.0f;
+
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	class UInputMappingContext* FireMappingContext;
@@ -37,6 +46,15 @@ public:
 	/** Fire Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	class UInputAction* FireAction;
+
+	/** Gravity Attraction Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true", EditCondition = "bIsGravityGun", EditConditionHides))
+	class UInputAction* AttractAction;
+
+	TObjectPtr<AActor> CurrentAttractedActor = nullptr;
+	TObjectPtr<AActor> CurrentPickedActor = nullptr;
+	float TimeToAttractActor = 0.0f;
+	FVector OldPos = FVector::ZeroVector;
 
 	/** Sets default values for this component's properties */
 	UTP_WeaponComponent();
@@ -49,10 +67,28 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Weapon")
 	void Fire();
 
+	/**  */
+	UFUNCTION(BlueprintCallable, Category = "JR_FPS/GravityGun")
+	void Attract();
+
+	UFUNCTION(BlueprintCallable, Category = "JR_FPS/GravityGun")
+	void OnStartAttract();
+
+	UFUNCTION(BlueprintCallable, Category = "JR_FPS/GravityGun")
+	void OnEndAttract();
+
+	UFUNCTION(BlueprintCallable, Category = "JR_FPS/GravityGun")
+	void OnPickUp(bool bIsDropping = false);
+
+	UFUNCTION(BlueprintCallable, Category = "JR_FPS/GravityGun")
+	void OnShootAttracted();
+
 protected:
 	/** Ends gameplay for this component. */
 	UFUNCTION()
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 private:
 	/** The Character holding this weapon*/

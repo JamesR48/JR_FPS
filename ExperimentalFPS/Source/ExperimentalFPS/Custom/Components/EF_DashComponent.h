@@ -21,10 +21,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr <UInputAction> DashAction = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS", meta = (AllowPrivateAccess = "true", ClampMin = 1.0f, UIMin = 1.0f))
 	float DashSpeed = 20.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS", meta = (AllowPrivateAccess = "true", ClampMin = 1.0f, UIMin = 1.0f))
 	float DashDistance = 500.0f;
 
 protected:

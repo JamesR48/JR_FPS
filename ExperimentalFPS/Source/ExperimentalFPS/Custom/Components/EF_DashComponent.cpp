@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "EF_DashComponent.h"
+#include "custom/Components/EF_DashComponent.h"
 
 // Sets default values for this component's properties
 UEF_DashComponent::UEF_DashComponent()
