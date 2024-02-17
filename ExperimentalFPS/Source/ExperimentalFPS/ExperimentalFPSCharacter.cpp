@@ -78,7 +78,7 @@ void AExperimentalFPSCharacter::SetupPlayerInputComponent(UInputComponent* Playe
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		JumpActionBinding = EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		// Moving
@@ -166,4 +166,14 @@ void AExperimentalFPSCharacter::SetHasRifle(bool bNewHasRifle)
 bool AExperimentalFPSCharacter::GetHasRifle()
 {
 	return bHasRifle;
+}
+
+void AExperimentalFPSCharacter::SetHasJetpack(bool bInHasJetpack)
+{
+	bHasJetpack = bInHasJetpack;
+}
+
+bool AExperimentalFPSCharacter::GetHasJetpack()
+{
+	return bHasJetpack;
 }

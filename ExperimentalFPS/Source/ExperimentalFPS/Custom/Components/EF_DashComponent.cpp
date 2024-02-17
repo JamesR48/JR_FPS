@@ -3,6 +3,8 @@
 
 #include "custom/Components/EF_DashComponent.h"
 
+#include "GameFramework/Character.h"
+
 // Sets default values for this component's properties
 UEF_DashComponent::UEF_DashComponent()
 {
@@ -87,7 +89,14 @@ void UEF_DashComponent::UpdateDash(float DeltaTime)
 
 void UEF_DashComponent::OnEndDash()
 {
-	GetOwner()->SetActorLocation(DashEndLocation);
+	if (GetOwner())
+	{
+		GetOwner()->SetActorLocation(DashEndLocation);
+		if (ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner()))
+		{
+			OwnerCharacter->ResetJumpState();
+		}
+	}
 	SetIsDashing(false);
 }
 

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "EnhancedInputComponent.h"
 #include "Logging/LogMacros.h"
 #include "ExperimentalFPSCharacter.generated.h"
 
@@ -39,9 +40,7 @@ class AExperimentalFPSCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	UInputMappingContext* DefaultMappingContext;
 
-	/** Jump Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
-	UInputAction* JumpAction;
+	
 
 	/** Move Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
@@ -49,13 +48,17 @@ class AExperimentalFPSCharacter : public ACharacter
 
 // -------------- JR_FPS Modifications START -------------- //
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS/Dash", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UEF_DashComponent> DashComponent = nullptr;
 
 // -------------- JR_FPS Modifications END -------------- //
 
 public:
 	AExperimentalFPSCharacter();
+
+	/** Jump Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* JumpAction;
 
 protected:
 	virtual void BeginPlay();
@@ -77,6 +80,18 @@ public:
 	/** Getter for the bool */
 	UFUNCTION(BlueprintCallable, Category = Weapon)
 	bool GetHasRifle();
+
+	/** Bool for AnimBP to switch to another animation set */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "JR_FPS/Jetpack")
+	bool bHasJetpack = false;
+
+	/** Setter to set the bool */
+	UFUNCTION(BlueprintCallable, Category = "JR_FPS/Jetpack")
+	void SetHasJetpack(bool bInHasJetpack);
+
+	/** Getter for the bool */
+	UFUNCTION(BlueprintCallable, Category = "JR_FPS/Jetpack")
+	bool GetHasJetpack();
 
 protected:
 	/** Called for movement input */
