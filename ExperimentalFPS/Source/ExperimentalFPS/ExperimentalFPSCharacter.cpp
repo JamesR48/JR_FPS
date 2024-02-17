@@ -102,6 +102,17 @@ void AExperimentalFPSCharacter::SetupPlayerInputComponent(UInputComponent* Playe
 	}
 }
 
+const FRotator AExperimentalFPSCharacter::GetLookAtRotation()
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController && PlayerController->PlayerCameraManager)
+	{
+		return PlayerController->PlayerCameraManager->GetCameraRotation();
+	}
+
+	return FRotator::ZeroRotator;
+}
+
 
 void AExperimentalFPSCharacter::Move(const FInputActionValue& Value)
 {

@@ -33,10 +33,8 @@ void UTP_WeaponComponent::Fire()
 		UWorld* const World = GetWorld();
 		if (World != nullptr)
 		{
-			APlayerController* PlayerController = Cast<APlayerController>(Character->GetController());
-			const FRotator SpawnRotation = PlayerController->PlayerCameraManager->GetCameraRotation();
-			// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
-			const FVector SpawnLocation = GetOwner()->GetActorLocation() + SpawnRotation.RotateVector(MuzzleOffset);
+			const FRotator SpawnRotation = Character->GetLookAtRotation();
+			const FVector SpawnLocation = GetFiringLocation();
 	
 			//Set Spawn Collision Handling Override
 			FActorSpawnParameters ActorSpawnParams;
@@ -78,7 +76,7 @@ void UTP_WeaponComponent::Attract()
 	}
 	else if(CurrentPickedActor)
 	{
-		OnPickUp(true);
+		OnDropAttractor();
 	}
 }
 
@@ -86,45 +84,35 @@ void UTP_WeaponComponent::OnStartAttract()
 {
 	if (Character && IsValid(GetOwner()) && IsValid(GetWorld()))
 	{
-		APlayerController* PlayerController = Cast<APlayerController>(Character->GetController());
-		if (PlayerController && PlayerController->PlayerCameraManager)
-		{
-			const FRotator CamRotation = PlayerController->PlayerCameraManager->GetCameraRotation();
-			// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
-			FVector AttractedLocation = GetOwner()->GetActorLocation() + CamRotation.RotateVector(MuzzleOffset);
-			FVector TraceEnd = AttractedLocation + CamRotation.Vector() * PickUpRadius * 8.0f;
-			//DrawDebugSphere(GetWorld(), TraceEnd, 20.0f, 12, FColor::Red, false, 5.0f);
+		const FRotator CamRotation = Character->GetLookAtRotation();
+		FVector AttractedLocation = GetFiringLocation();
+		FVector TraceEnd = AttractedLocation + CamRotation.Vector() * PickUpRadius * 8.0f;
 
-			FHitResult Hit;
-			FCollisionObjectQueryParams ObjectQuery;
-			ObjectQuery.AddObjectTypesToQuery(ECollisionChannel::ECC_PhysicsBody);
-			if (GetWorld()->LineTraceSingleByObjectType(Hit, AttractedLocation, TraceEnd, ObjectQuery))
+		FHitResult Hit;
+		FCollisionObjectQueryParams ObjectQuery;
+		ObjectQuery.AddObjectTypesToQuery(ECollisionChannel::ECC_PhysicsBody);
+		FCollisionQueryParams Params;
+		Params.AddIgnoredActor(GetOwner());
+		if (GetWorld()->LineTraceSingleByObjectType(Hit, AttractedLocation, TraceEnd, ObjectQuery, Params))
+		{
+			if (Hit.GetActor() && Hit.GetComponent())
 			{
-				if (Hit.GetActor())
+				CurrentAttractorComponent = Cast<UEF_AttractorComponent>(Hit.GetComponent());
+				if (CurrentAttractorComponent)
 				{
-					UEF_AttractorComponent* AttractorComp = Cast<UEF_AttractorComponent>(Hit.GetActor()->GetComponentByClass(UEF_AttractorComponent::StaticClass()));
-					if (AttractorComp)
+					DrawDebugSphere(GetWorld(), Hit.GetActor()->GetActorLocation(), 100.0f, 12, FColor::Red, false, 5.0f);
+					float DistToAttractSqr = (Hit.GetActor()->GetActorLocation() - AttractedLocation).SquaredLength();
+					if (DistToAttractSqr <= PickUpRadius * PickUpRadius)
 					{
-						DrawDebugSphere(GetWorld(), Hit.GetActor()->GetActorLocation(), 100.0f, 12, FColor::Red, false, 5.0f);
-						float DistToAttractSqr = (Hit.GetActor()->GetActorLocation() - AttractedLocation).SquaredLength();
-						if (DistToAttractSqr <= PickUpRadius * PickUpRadius)
-						{
-							CurrentPickedActor = Hit.GetActor();
-							CurrentPickedActor->SetActorLocation(AttractedLocation);
-							CurrentPickedActor->DisableComponentsSimulatePhysics();
-							CurrentPickedActor->SetActorEnableCollision(false);
-							FAttachmentTransformRules AttachRules = FAttachmentTransformRules::KeepWorldTransform;
-							CurrentPickedActor->AttachToComponent(this, AttachRules);
-						}
-						else
-						{
-							FVector MaxPickUpLocation = AttractedLocation + CamRotation.Vector() * PickUpRadius;
-							float DistToPickUp = (Hit.GetActor()->GetActorLocation() - MaxPickUpLocation).Length();
-							CurrentAttractedActor = Hit.GetActor();
-							TimeToAttractActor = DistToPickUp / (FiringForce*0.4f);
-							OldPos = CurrentAttractedActor->GetActorLocation();
-							CurrentAttractedActor->DisableComponentsSimulatePhysics();
-						}
+						OnPickAttractor(Hit.GetActor());
+					}
+					else
+					{
+						FVector StartPickUpLocation = AttractedLocation + CamRotation.Vector() * PickUpRadius;
+						float DistToPickUp = (Hit.GetActor()->GetActorLocation() - StartPickUpLocation).Length();
+						CurrentAttractedActor = Hit.GetActor();
+						TimeToAttractActor = DistToPickUp / AttractForce;
+						CurrentAttractedActor->DisableComponentsSimulatePhysics();
 					}
 				}
 			}
@@ -138,14 +126,8 @@ void UTP_WeaponComponent::OnEndAttract()
 	{
 		if (!CurrentPickedActor)
 		{
-			CurrentAttractedActor->SetActorEnableCollision(true);
-			for (UActorComponent* Component : CurrentAttractedActor->GetComponents())
-			{
-				if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component))
-				{
-					PrimComp->SetSimulatePhysics(true);
-				}
-			}
+			EnableActorComponentPhysics(CurrentAttractedActor);
+			CurrentAttractorComponent = nullptr;
 		}
 
 		CurrentAttractedActor = nullptr;
@@ -153,47 +135,71 @@ void UTP_WeaponComponent::OnEndAttract()
 	}
 }
 
-void UTP_WeaponComponent::OnPickUp(bool bIsDropping)
+void UTP_WeaponComponent::OnPickAttractor(AActor* InActorToPick)
 {
-	if (bIsDropping && CurrentPickedActor)
+	if (InActorToPick)
+	{
+		CurrentPickedActor = InActorToPick;
+		CurrentPickedActor->SetActorLocation(GetFiringLocation());
+		CurrentPickedActor->DisableComponentsSimulatePhysics();
+		CurrentPickedActor->SetActorEnableCollision(false);
+		FAttachmentTransformRules AttachRules = FAttachmentTransformRules::KeepWorldTransform;
+		CurrentPickedActor->AttachToComponent(this, AttachRules);
+	}
+}
+
+void UTP_WeaponComponent::OnDropAttractor(const FVector& InDropForce)
+{
+	if (CurrentPickedActor)
 	{
 		CurrentPickedActor->DetachRootComponentFromParent();
-
-		CurrentPickedActor->SetActorEnableCollision(true);
-
-		for (UActorComponent* Component : CurrentPickedActor->GetComponents())
-		{
-			if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component))
-			{
-				PrimComp->SetSimulatePhysics(true);
-			}
-		}
+		EnableActorComponentPhysics(CurrentPickedActor, InDropForce);
 		CurrentPickedActor = nullptr;
-	}
-	else
-	{
-
+		CurrentAttractorComponent = nullptr;
 	}
 }
 
 void UTP_WeaponComponent::OnShootAttracted()
 {
-	APlayerController* PlayerController = Cast<APlayerController>(Character->GetController());
-	if (PlayerController && PlayerController->PlayerCameraManager)
+	if (Character)
 	{
-		const FRotator CamRotation = PlayerController->PlayerCameraManager->GetCameraRotation();
-		CurrentPickedActor->DetachRootComponentFromParent();
-		CurrentPickedActor->SetActorEnableCollision(true);
-		for (UActorComponent* Component : CurrentPickedActor->GetComponents())
+		FVector Force = Character->GetLookAtRotation().Vector() * FiringForce;
+		OnDropAttractor(Force);
+	}
+}
+
+const FVector UTP_WeaponComponent::GetFiringLocation()
+{
+	if (Character)
+	{
+		const FRotator CamRotation = Character->GetLookAtRotation();
+		// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
+		const FVector FiringLocation = GetOwner()->GetActorLocation() + CamRotation.RotateVector(MuzzleOffset);
+		return FiringLocation;
+	}
+
+	return FVector::ZeroVector;
+}
+
+void UTP_WeaponComponent::EnableActorComponentPhysics(AActor* InActor, const FVector& InForceOnEnable)
+{
+	if (InActor)
+	{
+		InActor->SetActorEnableCollision(true);
+		for (UActorComponent* Component : InActor->GetComponents())
 		{
 			if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component))
 			{
-				PrimComp->SetSimulatePhysics(true);
-				FVector Force = CamRotation.Vector() * FiringForce;
-				PrimComp->SetAllPhysicsLinearVelocity(Force);
+				if (PrimComp != CurrentAttractorComponent)
+				{
+					PrimComp->SetSimulatePhysics(true);
+					if (!InForceOnEnable.IsNearlyZero())
+					{
+						PrimComp->SetAllPhysicsLinearVelocity(InForceOnEnable);
+					}
+				}
 			}
 		}
-		CurrentPickedActor = nullptr;
 	}
 }
 
@@ -260,33 +266,18 @@ void UTP_WeaponComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 
 	if (CurrentAttractedActor && TimeToAttractActor > 0.0f)
 	{
-		APlayerController* PlayerController = Cast<APlayerController>(Character->GetController());
-		if (PlayerController && PlayerController->PlayerCameraManager)
+		FVector AttractedLocation = GetFiringLocation();
+		FVector MoveDir = (AttractedLocation - CurrentAttractedActor->GetActorLocation()).GetSafeNormal();
+
+		FVector TempPos = CurrentAttractedActor->GetActorLocation();
+		const FVector NewLocation = CurrentAttractedActor->GetActorLocation() + (MoveDir * AttractForce) * DeltaTime;
+		CurrentAttractedActor->SetActorLocation(NewLocation);
+
+		TimeToAttractActor -= DeltaTime;
+		if (TimeToAttractActor <= 0.0f)
 		{
-			const FRotator CamRotation = PlayerController->PlayerCameraManager->GetCameraRotation();
-			// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
-			FVector AttractedLocation = GetOwner()->GetActorLocation() + CamRotation.RotateVector(MuzzleOffset);
-			FVector MoveDir = (AttractedLocation - CurrentAttractedActor->GetActorLocation()).GetSafeNormal();
-
-			FVector TempPos = CurrentAttractedActor->GetActorLocation();
-			// (2 * CurrentAttractedActor->GetActorLocation() - OldPos) + (MoveDir * FiringForce) * DeltaTime * DeltaTime;
-			// CurrentAttractedActor->GetActorLocation() + (MoveDir * FiringForce) * DeltaTime;
-			const FVector NewLocation = (2 * CurrentAttractedActor->GetActorLocation() - OldPos) + (MoveDir * FiringForce * 0.4f) * DeltaTime * DeltaTime;
-			CurrentAttractedActor->SetActorLocation(NewLocation);
-			OldPos = TempPos;
-
-			TimeToAttractActor -= DeltaTime;
-			if (TimeToAttractActor <= 0.0f)
-			{
-				CurrentPickedActor = CurrentAttractedActor;
-				CurrentPickedActor->SetActorLocation(AttractedLocation);
-				CurrentPickedActor->DisableComponentsSimulatePhysics();
-				CurrentPickedActor->SetActorEnableCollision(false);
-				FAttachmentTransformRules AttachRules = FAttachmentTransformRules::KeepWorldTransform;
-				CurrentPickedActor->AttachToComponent(this, AttachRules);
-
-				OnEndAttract();
-			}
+			OnPickAttractor(CurrentAttractedActor);
+			OnEndAttract();
 		}
 	}
 }

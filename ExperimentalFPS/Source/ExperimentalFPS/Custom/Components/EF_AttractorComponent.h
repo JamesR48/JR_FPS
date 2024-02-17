@@ -3,26 +3,18 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
+#include "Components/SphereComponent.h"
 #include "EF_AttractorComponent.generated.h"
 
-
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
-class EXPERIMENTALFPS_API UEF_AttractorComponent : public UActorComponent
+/**
+ * 
+ */
+UCLASS(Blueprintable, BlueprintType, ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
+class EXPERIMENTALFPS_API UEF_AttractorComponent : public USphereComponent
 {
 	GENERATED_BODY()
+	
+public:
 
-public:	
-	// Sets default values for this component's properties
 	UEF_AttractorComponent();
-
-protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
-
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
-		
 };

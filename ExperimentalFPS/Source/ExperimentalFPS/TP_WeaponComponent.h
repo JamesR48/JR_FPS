@@ -7,6 +7,7 @@
 #include "TP_WeaponComponent.generated.h"
 
 class AExperimentalFPSCharacter;
+class UEF_AttractorComponent;
 
 UCLASS(Blueprintable, BlueprintType, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class EXPERIMENTALFPS_API UTP_WeaponComponent : public USkeletalMeshComponent
@@ -33,10 +34,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS/GravityGun", meta = (AllowPrivateAccess = "true"))
 	bool bIsGravityGun = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS/GravityGun", meta = (AllowPrivateAccess = "true", EditCondition = "bIsGravityGun", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS/GravityGun", meta = (AllowPrivateAccess = "true", EditCondition = "bIsGravityGun", EditConditionHides, ClampMin = 1.0f, UIMin = 1.0f))
 	float FiringForce = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS/GravityGun", meta = (AllowPrivateAccess = "true", EditCondition = "bIsGravityGun", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS/GravityGun", meta = (AllowPrivateAccess = "true", EditCondition = "bIsGravityGun", EditConditionHides, ClampMin = 1.0f, UIMin = 1.0f))
+	float AttractForce = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS/GravityGun", meta = (AllowPrivateAccess = "true", EditCondition = "bIsGravityGun", EditConditionHides, ClampMin = 1.0f, UIMin = 1.0f))
 	float PickUpRadius = 1.0f;
 
 	/** MappingContext */
@@ -51,10 +55,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true", EditCondition = "bIsGravityGun", EditConditionHides))
 	class UInputAction* AttractAction;
 
+	UPROPERTY(Transient)
 	TObjectPtr<AActor> CurrentAttractedActor = nullptr;
+	
+	UPROPERTY(Transient)
 	TObjectPtr<AActor> CurrentPickedActor = nullptr;
+	
+	UPROPERTY(Transient)
+	TObjectPtr<UEF_AttractorComponent> CurrentAttractorComponent = nullptr;
+
+	UPROPERTY(Transient)
 	float TimeToAttractActor = 0.0f;
-	FVector OldPos = FVector::ZeroVector;
 
 	/** Sets default values for this component's properties */
 	UTP_WeaponComponent();
@@ -78,10 +89,17 @@ public:
 	void OnEndAttract();
 
 	UFUNCTION(BlueprintCallable, Category = "JR_FPS/GravityGun")
-	void OnPickUp(bool bIsDropping = false);
+	void OnPickAttractor(AActor* InActorToPick);
+
+	UFUNCTION(BlueprintCallable, Category = "JR_FPS/GravityGun")
+	void OnDropAttractor(const FVector& InDropForce = FVector::ZeroVector);
 
 	UFUNCTION(BlueprintCallable, Category = "JR_FPS/GravityGun")
 	void OnShootAttracted();
+
+	const FVector GetFiringLocation();
+
+	void EnableActorComponentPhysics(AActor* InActor, const FVector& InForceOnEnable = FVector::ZeroVector);
 
 protected:
 	/** Ends gameplay for this component. */
