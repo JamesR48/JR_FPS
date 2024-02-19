@@ -24,9 +24,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UInputAction> JetpackAction = nullptr;
 
-	/** Upwards Strenght of the jetpack, the more it is, the bigger is the acceleration for the jetpack, if its too low, the gravity has more power and you dont even fly */
+	/** Upwards Strength of the jetpack, the more it is, the bigger is the acceleration for the jetpack, if its too low, the gravity has more power and you dont even fly */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS")
-	float JetpackStrenght = 500.0f;
+	float JetpackStrength = 500.0f;
 
 	/** maximum fuel for the jetpack, this goes in seconds, and its depleted with simple time, so if its 2, you can only fly for 2 seconds */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS", meta = (ClampMin = 0.1f, UIMin = 0.1f))

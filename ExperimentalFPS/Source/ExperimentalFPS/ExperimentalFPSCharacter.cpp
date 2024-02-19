@@ -112,6 +112,7 @@ void AExperimentalFPSCharacter::Move(const FInputActionValue& Value)
 
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
+	InputMovementVector = MovementVector;
 
 	if (Controller != nullptr)
 	{
@@ -150,7 +151,9 @@ void AExperimentalFPSCharacter::Dash(const FInputActionValue& Value)
 {
 	if (IsValid(DashComponent) && IsValid(GetCharacterMovement()))
 	{
-		DashComponent->OnStartDash(GetCharacterMovement()->Velocity);
+		FVector InputVector = (GetActorForwardVector() * InputMovementVector.Y) + (GetActorRightVector() * InputMovementVector.X);
+		FVector DashVel = GetCharacterMovement()->Velocity.Length() * InputVector;
+		DashComponent->OnStartDash(DashVel);
 	}
 }
 

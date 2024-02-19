@@ -93,6 +93,9 @@ public:
 	UPROPERTY(Transient)
 	float DefaultGravityScale = 1.0f;
 
+	UPROPERTY(Transient)
+	FVector2D InputMovementVector = FVector2D::ZeroVector;
+
 	UFUNCTION(BlueprintCallable, Category = "JR_FPS/Jetpack")
 	void SetHasJetpack(bool bInHasJetpack);
 

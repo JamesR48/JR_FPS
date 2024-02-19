@@ -67,7 +67,7 @@ void UEF_JetpackComponent::UpdateMovement(float DeltaTime)
 			
 			OnFuelChanged.Broadcast(CurrentFuel);
 			
-			CharacterMovementComp->Velocity.Z += JetpackStrenght * DeltaTime;
+			CharacterMovementComp->Velocity.Z += JetpackStrength * DeltaTime;
 		}
 		else if (bIsJetpackEnabled)
 		{
