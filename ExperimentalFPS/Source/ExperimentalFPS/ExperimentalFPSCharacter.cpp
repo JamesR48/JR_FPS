@@ -151,10 +151,6 @@ void AExperimentalFPSCharacter::Dash(const FInputActionValue& Value)
 	if (IsValid(DashComponent) && IsValid(GetCharacterMovement()))
 	{
 		DashComponent->OnStartDash(GetCharacterMovement()->Velocity);
-		if (DashComponent->GetIsDashing())
-		{
-			//GetCharacterMovement()->SetJumpAllowed(false);
-		}
 	}
 }
 
