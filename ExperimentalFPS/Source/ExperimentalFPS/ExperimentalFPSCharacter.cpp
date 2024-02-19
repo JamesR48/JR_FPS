@@ -12,10 +12,8 @@
 #include "Engine/LocalPlayer.h"
 
 // -------------- JR_FPS Modifications START -------------- //
-
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Custom/Components/EF_DashComponent.h"
-
 // -------------- JR_FPS Modifications END -------------- //
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -48,9 +46,8 @@ AExperimentalFPSCharacter::AExperimentalFPSCharacter()
 
 	
 // -------------- JR_FPS Modifications START -------------- //
-	
 	DashComponent = CreateDefaultSubobject<UEF_DashComponent>(TEXT("DashComponent"));
-
+	bHasJetpack = false;
 // -------------- JR_FPS Modifications END -------------- //
 }
 
@@ -68,6 +65,14 @@ void AExperimentalFPSCharacter::BeginPlay()
 		}
 	}
 
+// -------------- JR_FPS Modifications START -------------- //
+	if(GetCharacterMovement())
+	{
+		DefaultAirControl = GetCharacterMovement()->AirControl;
+		DefaultGravityScale = GetCharacterMovement()->GravityScale;
+	}
+// -------------- JR_FPS Modifications END -------------- //
+
 }
 
 //////////////////////////////////////////////////////////////////////////// Input
@@ -78,7 +83,7 @@ void AExperimentalFPSCharacter::SetupPlayerInputComponent(UInputComponent* Playe
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		// Jumping
-		JumpActionBinding = EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		// Moving
@@ -88,29 +93,16 @@ void AExperimentalFPSCharacter::SetupPlayerInputComponent(UInputComponent* Playe
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AExperimentalFPSCharacter::Look);
 
 // -------------- JR_FPS Modifications START -------------- //
-		
 		if (IsValid(DashComponent) && IsValid(DashComponent->DashAction))
 		{
 			EnhancedInputComponent->BindAction(DashComponent->DashAction, ETriggerEvent::Triggered, this, &AExperimentalFPSCharacter::Dash);
 		}
-		
 // -------------- JR_FPS Modifications END -------------- //
 	}
 	else
 	{
 		UE_LOG(LogTemplateCharacter, Error, TEXT("'%s' Failed to find an Enhanced Input Component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
 	}
-}
-
-const FRotator AExperimentalFPSCharacter::GetLookAtRotation()
-{
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-	if (PlayerController && PlayerController->PlayerCameraManager)
-	{
-		return PlayerController->PlayerCameraManager->GetCameraRotation();
-	}
-
-	return FRotator::ZeroRotator;
 }
 
 
@@ -142,6 +134,16 @@ void AExperimentalFPSCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
+void AExperimentalFPSCharacter::SetHasRifle(bool bNewHasRifle)
+{
+	bHasRifle = bNewHasRifle;
+}
+
+bool AExperimentalFPSCharacter::GetHasRifle()
+{
+	return bHasRifle;
+}
+
 // -------------- JR_FPS Modifications START -------------- //
 
 void AExperimentalFPSCharacter::Dash(const FInputActionValue& Value)
@@ -156,16 +158,26 @@ void AExperimentalFPSCharacter::Dash(const FInputActionValue& Value)
 	}
 }
 
-// -------------- JR_FPS Modifications END -------------- //
-
-void AExperimentalFPSCharacter::SetHasRifle(bool bNewHasRifle)
+void AExperimentalFPSCharacter::Landed(const FHitResult &Hit)
 {
-	bHasRifle = bNewHasRifle;
+	Super::Landed(Hit);
+
+	if(bHasJetpack && GetCharacterMovement())
+	{
+		GetCharacterMovement()->AirControl = DefaultAirControl;
+		GetCharacterMovement()->GravityScale = DefaultGravityScale;
+	}
 }
 
-bool AExperimentalFPSCharacter::GetHasRifle()
+const FRotator AExperimentalFPSCharacter::GetLookAtRotation()
 {
-	return bHasRifle;
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController && PlayerController->PlayerCameraManager)
+	{
+		return PlayerController->PlayerCameraManager->GetCameraRotation();
+	}
+
+	return FRotator::ZeroRotator;
 }
 
 void AExperimentalFPSCharacter::SetHasJetpack(bool bInHasJetpack)
@@ -177,3 +189,5 @@ bool AExperimentalFPSCharacter::GetHasJetpack()
 {
 	return bHasJetpack;
 }
+
+// -------------- JR_FPS Modifications END -------------- //

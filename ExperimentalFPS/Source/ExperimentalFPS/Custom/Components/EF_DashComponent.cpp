@@ -73,7 +73,7 @@ void UEF_DashComponent::OnStartDash(const FVector& InVelocity)
 
 void UEF_DashComponent::UpdateDash(float DeltaTime)
 {
-	if (CurrentDashingTime > 0.0f)
+	if (GetOwner() && CurrentDashingTime > 0.0f)
 	{
 		const FVector NewLocation = GetOwner()->GetActorLocation() + CurrentDashingVelocity * DeltaTime;
 		GetOwner()->SetActorLocation(NewLocation);

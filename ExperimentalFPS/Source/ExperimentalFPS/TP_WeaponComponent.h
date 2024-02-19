@@ -7,7 +7,10 @@
 #include "TP_WeaponComponent.generated.h"
 
 class AExperimentalFPSCharacter;
+
+// -------------- JR_FPS Modifications START -------------- //
 class UEF_AttractorComponent;
+// -------------- JR_FPS Modifications END -------------- //
 
 UCLASS(Blueprintable, BlueprintType, ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class EXPERIMENTALFPS_API UTP_WeaponComponent : public USkeletalMeshComponent
@@ -31,6 +34,29 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Gameplay)
 	FVector MuzzleOffset;
 
+	/** MappingContext */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
+	class UInputMappingContext* FireMappingContext;
+
+	/** Fire Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
+	class UInputAction* FireAction;
+
+	/** Sets default values for this component's properties */
+	UTP_WeaponComponent();
+
+	/** Attaches the actor to a FirstPersonCharacter */
+	UFUNCTION(BlueprintCallable, Category="Weapon")
+	void AttachWeapon(AExperimentalFPSCharacter* TargetCharacter);
+
+	/** Make the weapon Fire a Projectile */
+	UFUNCTION(BlueprintCallable, Category="Weapon")
+	void Fire();
+
+	
+public:
+// -------------- JR_FPS Modifications START -------------- //
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS/GravityGun", meta = (AllowPrivateAccess = "true"))
 	bool bIsGravityGun = false;
 
@@ -42,14 +68,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS/GravityGun", meta = (AllowPrivateAccess = "true", EditCondition = "bIsGravityGun", EditConditionHides, ClampMin = 1.0f, UIMin = 1.0f))
 	float PickUpRadius = 1.0f;
-
-	/** MappingContext */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
-	class UInputMappingContext* FireMappingContext;
-
-	/** Fire Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
-	class UInputAction* FireAction;
 
 	/** Gravity Attraction Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true", EditCondition = "bIsGravityGun", EditConditionHides))
@@ -67,18 +85,6 @@ public:
 	UPROPERTY(Transient)
 	float TimeToAttractActor = 0.0f;
 
-	/** Sets default values for this component's properties */
-	UTP_WeaponComponent();
-
-	/** Attaches the actor to a FirstPersonCharacter */
-	UFUNCTION(BlueprintCallable, Category="Weapon")
-	void AttachWeapon(AExperimentalFPSCharacter* TargetCharacter);
-
-	/** Make the weapon Fire a Projectile */
-	UFUNCTION(BlueprintCallable, Category="Weapon")
-	void Fire();
-
-	/**  */
 	UFUNCTION(BlueprintCallable, Category = "JR_FPS/GravityGun")
 	void Attract();
 
@@ -97,9 +103,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "JR_FPS/GravityGun")
 	void OnShootAttracted();
 
+	void UpdateAttractor(float DeltaTime);
+
 	const FVector GetFiringLocation();
 
 	void EnableActorComponentPhysics(AActor* InActor, const FVector& InForceOnEnable = FVector::ZeroVector);
+
+// -------------- JR_FPS Modifications END -------------- //
 
 protected:
 	/** Ends gameplay for this component. */

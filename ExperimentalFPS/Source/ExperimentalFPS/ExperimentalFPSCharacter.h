@@ -16,9 +16,7 @@ class UInputMappingContext;
 struct FInputActionValue;
 
 // -------------- JR_FPS Modifications START -------------- //
-
 class UEF_DashComponent;
-
 // -------------- JR_FPS Modifications END -------------- //
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -46,22 +44,24 @@ class AExperimentalFPSCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	UInputAction* MoveAction;
 
-// -------------- JR_FPS Modifications START -------------- //
+	/** Jump Input Action */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* JumpAction;
 
+// -------------- JR_FPS Modifications START -------------- //
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "JR_FPS/Dash", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UEF_DashComponent> DashComponent = nullptr;
-
 // -------------- JR_FPS Modifications END -------------- //
 
 public:
 	AExperimentalFPSCharacter();
 
-	/** Jump Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* JumpAction;
-
 protected:
 	virtual void BeginPlay();
+
+// -------------- JR_FPS Modifications START -------------- //
+	virtual void Landed(const FHitResult& Hit) override;
+// -------------- JR_FPS Modifications END -------------- //
 
 public:
 		
@@ -81,17 +81,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Weapon)
 	bool GetHasRifle();
 
-	/** Bool for AnimBP to switch to another animation set */
+public:
+// -------------- JR_FPS Modifications START -------------- //
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "JR_FPS/Jetpack")
 	bool bHasJetpack = false;
 
-	/** Setter to set the bool */
+	UPROPERTY(Transient)
+	float DefaultAirControl = 0.05f;
+
+	UPROPERTY(Transient)
+	float DefaultGravityScale = 1.0f;
+
 	UFUNCTION(BlueprintCallable, Category = "JR_FPS/Jetpack")
 	void SetHasJetpack(bool bInHasJetpack);
 
-	/** Getter for the bool */
 	UFUNCTION(BlueprintCallable, Category = "JR_FPS/Jetpack")
 	bool GetHasJetpack();
+
+	const FRotator GetLookAtRotation();
+
+// -------------- JR_FPS Modifications END -------------- //
 
 protected:
 	/** Called for movement input */
@@ -101,9 +111,7 @@ protected:
 	void Look(const FInputActionValue& Value);
 
 // -------------- JR_FPS Modifications START -------------- //
-	
 	void Dash(const FInputActionValue& Value);
-
 // -------------- JR_FPS Modifications END -------------- //
 
 protected:
@@ -116,7 +124,5 @@ public:
 	USkeletalMeshComponent* GetMesh1P() const { return Mesh1P; }
 	/** Returns FirstPersonCameraComponent subobject **/
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
-
-	const FRotator GetLookAtRotation();
 };
 

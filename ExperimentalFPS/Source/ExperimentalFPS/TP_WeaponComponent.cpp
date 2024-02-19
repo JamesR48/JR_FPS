@@ -10,7 +10,9 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 
+// -------------- JR_FPS Modifications START -------------- //
 #include "Custom/Components/EF_AttractorComponent.h"
+// -------------- JR_FPS Modifications END -------------- //
 
 // Sets default values for this component's properties
 UTP_WeaponComponent::UTP_WeaponComponent()
@@ -45,10 +47,12 @@ void UTP_WeaponComponent::Fire()
 		}
 	}
 	
-	if (CurrentPickedActor)
+// -------------- JR_FPS Modifications START -------------- //
+	if (bIsGravityGun && CurrentPickedActor)
 	{
 		OnShootAttracted();
 	}
+// -------------- JR_FPS Modifications END -------------- //
 
 	// Try and play the sound if specified
 	if (FireSound != nullptr)
@@ -64,141 +68,6 @@ void UTP_WeaponComponent::Fire()
 		if (AnimInstance != nullptr)
 		{
 			AnimInstance->Montage_Play(FireAnimation, 1.f);
-		}
-	}
-}
-
-void UTP_WeaponComponent::Attract()
-{
-	if (!CurrentPickedActor && !CurrentAttractedActor)
-	{
-		OnStartAttract();
-	}
-	else if(CurrentPickedActor)
-	{
-		OnDropAttractor();
-	}
-}
-
-void UTP_WeaponComponent::OnStartAttract()
-{
-	if (Character && IsValid(GetOwner()) && IsValid(GetWorld()))
-	{
-		const FRotator CamRotation = Character->GetLookAtRotation();
-		FVector AttractedLocation = GetFiringLocation();
-		FVector TraceEnd = AttractedLocation + CamRotation.Vector() * PickUpRadius * 8.0f;
-
-		FHitResult Hit;
-		FCollisionObjectQueryParams ObjectQuery;
-		ObjectQuery.AddObjectTypesToQuery(ECollisionChannel::ECC_PhysicsBody);
-		FCollisionQueryParams Params;
-		Params.AddIgnoredActor(GetOwner());
-		if (GetWorld()->LineTraceSingleByObjectType(Hit, AttractedLocation, TraceEnd, ObjectQuery, Params))
-		{
-			if (Hit.GetActor() && Hit.GetComponent())
-			{
-				CurrentAttractorComponent = Cast<UEF_AttractorComponent>(Hit.GetComponent());
-				if (CurrentAttractorComponent)
-				{
-					DrawDebugSphere(GetWorld(), Hit.GetActor()->GetActorLocation(), 100.0f, 12, FColor::Red, false, 5.0f);
-					float DistToAttractSqr = (Hit.GetActor()->GetActorLocation() - AttractedLocation).SquaredLength();
-					if (DistToAttractSqr <= PickUpRadius * PickUpRadius)
-					{
-						OnPickAttractor(Hit.GetActor());
-					}
-					else
-					{
-						FVector StartPickUpLocation = AttractedLocation + CamRotation.Vector() * PickUpRadius;
-						float DistToPickUp = (Hit.GetActor()->GetActorLocation() - StartPickUpLocation).Length();
-						CurrentAttractedActor = Hit.GetActor();
-						TimeToAttractActor = DistToPickUp / AttractForce;
-						CurrentAttractedActor->DisableComponentsSimulatePhysics();
-					}
-				}
-			}
-		}
-	}
-}
-
-void UTP_WeaponComponent::OnEndAttract()
-{
-	if (CurrentAttractedActor)
-	{
-		if (!CurrentPickedActor)
-		{
-			EnableActorComponentPhysics(CurrentAttractedActor);
-			CurrentAttractorComponent = nullptr;
-		}
-
-		CurrentAttractedActor = nullptr;
-		TimeToAttractActor = 0.0f;
-	}
-}
-
-void UTP_WeaponComponent::OnPickAttractor(AActor* InActorToPick)
-{
-	if (InActorToPick)
-	{
-		CurrentPickedActor = InActorToPick;
-		CurrentPickedActor->SetActorLocation(GetFiringLocation());
-		CurrentPickedActor->DisableComponentsSimulatePhysics();
-		CurrentPickedActor->SetActorEnableCollision(false);
-		FAttachmentTransformRules AttachRules = FAttachmentTransformRules::KeepWorldTransform;
-		CurrentPickedActor->AttachToComponent(this, AttachRules);
-	}
-}
-
-void UTP_WeaponComponent::OnDropAttractor(const FVector& InDropForce)
-{
-	if (CurrentPickedActor)
-	{
-		CurrentPickedActor->DetachRootComponentFromParent();
-		EnableActorComponentPhysics(CurrentPickedActor, InDropForce);
-		CurrentPickedActor = nullptr;
-		CurrentAttractorComponent = nullptr;
-	}
-}
-
-void UTP_WeaponComponent::OnShootAttracted()
-{
-	if (Character)
-	{
-		FVector Force = Character->GetLookAtRotation().Vector() * FiringForce;
-		OnDropAttractor(Force);
-	}
-}
-
-const FVector UTP_WeaponComponent::GetFiringLocation()
-{
-	if (Character)
-	{
-		const FRotator CamRotation = Character->GetLookAtRotation();
-		// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
-		const FVector FiringLocation = GetOwner()->GetActorLocation() + CamRotation.RotateVector(MuzzleOffset);
-		return FiringLocation;
-	}
-
-	return FVector::ZeroVector;
-}
-
-void UTP_WeaponComponent::EnableActorComponentPhysics(AActor* InActor, const FVector& InForceOnEnable)
-{
-	if (InActor)
-	{
-		InActor->SetActorEnableCollision(true);
-		for (UActorComponent* Component : InActor->GetComponents())
-		{
-			if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component))
-			{
-				if (PrimComp != CurrentAttractorComponent)
-				{
-					PrimComp->SetSimulatePhysics(true);
-					if (!InForceOnEnable.IsNearlyZero())
-					{
-						PrimComp->SetAllPhysicsLinearVelocity(InForceOnEnable);
-					}
-				}
-			}
 		}
 	}
 }
@@ -234,12 +103,14 @@ void UTP_WeaponComponent::AttachWeapon(AExperimentalFPSCharacter* TargetCharacte
 			// Fire
 			EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Triggered, this, &UTP_WeaponComponent::Fire);
 
+// -------------- JR_FPS Modifications START -------------- //
 			if (bIsGravityGun)
 			{
 				// Attract
 				EnhancedInputComponent->BindAction(AttractAction, ETriggerEvent::Started, this, &UTP_WeaponComponent::Attract);
 				EnhancedInputComponent->BindAction(AttractAction, ETriggerEvent::Completed, this, &UTP_WeaponComponent::OnEndAttract);
 			}
+// -------------- JR_FPS Modifications END -------------- //
 		}
 	}
 }
@@ -260,17 +131,158 @@ void UTP_WeaponComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 }
 
-void UTP_WeaponComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+// -------------- JR_FPS Modifications START -------------- //
 
+void UTP_WeaponComponent::Attract()
+{
+	if (!bIsGravityGun)
+	{
+		return;
+	}
+
+	if (!CurrentPickedActor && !CurrentAttractedActor)
+	{
+		OnStartAttract();
+	}
+	else if(CurrentPickedActor)
+	{
+		OnDropAttractor();
+	}
+}
+
+void UTP_WeaponComponent::OnStartAttract()
+{
+	if (bIsGravityGun && Character && IsValid(GetOwner()) && IsValid(GetWorld()))
+	{
+		const FRotator CamRotation = Character->GetLookAtRotation();
+		FVector AttractedLocation = GetFiringLocation();
+		FVector TraceEnd = AttractedLocation + CamRotation.Vector() * PickUpRadius * 8.0f;
+
+		FHitResult Hit;
+		FCollisionObjectQueryParams ObjectQuery;
+		ObjectQuery.AddObjectTypesToQuery(ECollisionChannel::ECC_PhysicsBody);
+		FCollisionQueryParams Params;
+		Params.AddIgnoredActor(GetOwner());
+		if (GetWorld()->LineTraceSingleByObjectType(Hit, AttractedLocation, TraceEnd, ObjectQuery, Params))
+		{
+			if (Hit.GetActor() && Hit.GetComponent())
+			{
+				CurrentAttractorComponent = Cast<UEF_AttractorComponent>(Hit.GetComponent());
+				if (CurrentAttractorComponent)
+				{
+					AActor* HittedActor = Hit.GetActor();
+					//DrawDebugSphere(GetWorld(), Hit.GetActor()->GetActorLocation(), 100.0f, 12, FColor::Red, false, 5.0f);
+					float DistToAttractSqr = (HittedActor->GetActorLocation() - AttractedLocation).SquaredLength();
+					if (DistToAttractSqr <= PickUpRadius * PickUpRadius)
+					{
+						OnPickAttractor(HittedActor);
+					}
+					else
+					{
+						FVector StartPickUpLocation = AttractedLocation + CamRotation.Vector() * PickUpRadius;
+						float DistToPickUp = (HittedActor->GetActorLocation() - StartPickUpLocation).Length();
+						CurrentAttractedActor = HittedActor;
+						TimeToAttractActor = DistToPickUp / AttractForce;
+						CurrentAttractedActor->DisableComponentsSimulatePhysics();
+					}
+				}
+			}
+		}
+	}
+}
+
+void UTP_WeaponComponent::OnEndAttract()
+{
+	if (bIsGravityGun && CurrentAttractedActor)
+	{
+		if (!CurrentPickedActor)
+		{
+			EnableActorComponentPhysics(CurrentAttractedActor);
+			CurrentAttractorComponent = nullptr;
+		}
+
+		CurrentAttractedActor = nullptr;
+		TimeToAttractActor = 0.0f;
+	}
+}
+
+void UTP_WeaponComponent::OnPickAttractor(AActor* InActorToPick)
+{
+	if (bIsGravityGun && InActorToPick)
+	{
+		CurrentPickedActor = InActorToPick;
+		CurrentPickedActor->SetActorLocation(GetFiringLocation());
+		CurrentPickedActor->DisableComponentsSimulatePhysics();
+		CurrentPickedActor->SetActorEnableCollision(false);
+		FAttachmentTransformRules AttachRules = FAttachmentTransformRules::KeepWorldTransform;
+		CurrentPickedActor->AttachToComponent(this, AttachRules);
+	}
+}
+
+void UTP_WeaponComponent::OnDropAttractor(const FVector& InDropForce)
+{
+	if (bIsGravityGun && CurrentPickedActor)
+	{
+		CurrentPickedActor->DetachRootComponentFromParent();
+		EnableActorComponentPhysics(CurrentPickedActor, InDropForce);
+		CurrentPickedActor = nullptr;
+		CurrentAttractorComponent = nullptr;
+	}
+}
+
+void UTP_WeaponComponent::OnShootAttracted()
+{
+	if (Character)
+	{
+		FVector Force = Character->GetLookAtRotation().Vector() * FiringForce;
+		OnDropAttractor(Force);
+	}
+}
+
+const FVector UTP_WeaponComponent::GetFiringLocation()
+{
+	if (Character && GetOwner())
+	{
+		const FRotator CamRotation = Character->GetLookAtRotation();
+		// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
+		const FVector FiringLocation = GetOwner()->GetActorLocation() + CamRotation.RotateVector(MuzzleOffset);
+		return FiringLocation;
+	}
+
+	return FVector::ZeroVector;
+}
+
+void UTP_WeaponComponent::EnableActorComponentPhysics(AActor* InActor, const FVector& InForceOnEnable)
+{
+	if (bIsGravityGun && InActor)
+	{
+		InActor->SetActorEnableCollision(true);
+		for (UActorComponent* Component : InActor->GetComponents())
+		{
+			if (UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component))
+			{
+				if (PrimComp != CurrentAttractorComponent)
+				{
+					PrimComp->SetSimulatePhysics(true);
+					if (!InForceOnEnable.IsNearlyZero())
+					{
+						PrimComp->SetAllPhysicsLinearVelocity(InForceOnEnable);
+					}
+				}
+			}
+		}
+	}
+}
+
+void UTP_WeaponComponent::UpdateAttractor(float DeltaTime)
+{
 	if (CurrentAttractedActor && TimeToAttractActor > 0.0f)
 	{
 		FVector AttractedLocation = GetFiringLocation();
-		FVector MoveDir = (AttractedLocation - CurrentAttractedActor->GetActorLocation()).GetSafeNormal();
+		FVector CurrentActorLocation = CurrentAttractedActor->GetActorLocation();
+		FVector MoveDir = (AttractedLocation - CurrentActorLocation).GetSafeNormal();
 
-		FVector TempPos = CurrentAttractedActor->GetActorLocation();
-		const FVector NewLocation = CurrentAttractedActor->GetActorLocation() + (MoveDir * AttractForce) * DeltaTime;
+		const FVector NewLocation = CurrentActorLocation + (MoveDir * AttractForce) * DeltaTime;
 		CurrentAttractedActor->SetActorLocation(NewLocation);
 
 		TimeToAttractActor -= DeltaTime;
@@ -281,3 +293,15 @@ void UTP_WeaponComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 		}
 	}
 }
+
+void UTP_WeaponComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (bIsGravityGun)
+	{
+		UpdateAttractor(DeltaTime);
+	}
+}
+
+// -------------- JR_FPS Modifications END -------------- //
